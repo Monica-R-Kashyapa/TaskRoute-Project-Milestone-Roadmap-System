@@ -67,8 +67,8 @@ The application follows a **layered architecture**:
 
 ### Admin Dashboard
 <p align="center">
-  <img src="src/main/resources/static/images/admin1.png" alt="Admin Dashboard 1" width="45%" />
-  <img src="src/main/resources/static/images/admin.png" alt="Admin Dashboard 2" width="45%" />
+  <img src="src/main/resources/static/images/admin1.png" alt="Admin Dashboard 1" />
+  <img src="src/main/resources/static/images/admin.png" alt="Admin Dashboard 2" />
 </p>
 
 ### Milestone Roadmap View
