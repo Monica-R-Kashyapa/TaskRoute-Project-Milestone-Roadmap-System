@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Dashboard - TaskRoute</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .milestone-roadmap {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .milestone-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e5e7eb;
+            z-index: 1;
+        }
+        .milestone-item {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+        .milestone-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .milestone-dot.completed {
+            background: #10b981;
+        }
+        .milestone-dot.in-progress {
+            background: #f59e0b;
+        }
+        .milestone-dot.not-started {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <img src="/images/taskroute-logo.png" alt="TaskRoute" class="h-10 w-auto mr-3" />
+                    <div class="leading-tight">
+                        <div class="font-bold text-xl text-gray-800">TaskRoute</div>
+                        <div class="text-xs text-gray-500">Project &amp; Milestone Roadmap System</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600" th:if="${session.user != null}">
+                        <i class="fas fa-user mr-2"></i>
+                        <span th:text="${session.user.username}">User</span>
+                        <span id="userId" class="hidden" th:text="${session.user.id}">0</span>
+                        <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800" 
+                              th:text="${session.user.role}">ROLE</span>
+                    </span>
+                    <a th:if="${session.user != null}" href="/auth/logout" 
+                       class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Section -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 mb-8 text-white">
+            <h1 class="text-3xl font-bold mb-2">Welcome, <span th:text="${session.user.username}">Client</span>!</h1>
+            <p class="text-blue-100">Manage your projects and track milestones</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Total Projects</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalProjects">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-project-diagram text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">In Progress</p>
+                        <p class="text-2xl font-bold text-gray-900" id="inProgressProjects">0</p>
+                    </div>
+                    <div class="bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-spinner text-yellow-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Completed</p>
+                        <p class="text-2xl font-bold text-gray-900" id="completedProjects">0</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+            <div class="flex flex-wrap gap-4">
+                <button onclick="showCreateProjectModal()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-plus mr-2"></i>New Project
+                </button>
+                <button onclick="downloadReports()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-download mr-2"></i>Download Reports
+                </button>
+            </div>
+        </div>
+
+        <!-- Projects List -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">My Projects</h2>
+            <div id="projectsList" class="space-y-4">
+                <!-- Projects will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Project Progress Chart -->
+        <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Project Progress Overview</h2>
+            <div class="relative h-64">
+                <canvas id="progressChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create Project Modal -->
+    <div id="createProjectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Create New Project</h3>
+                <form id="createProjectForm">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                            <input type="text" id="projectName" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="projectDescription" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Manager</label>
+                            <select id="projectManager" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select a manager</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <input type="date" id="startDate"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                            <input type="date" id="endDate"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" onclick="hideCreateProjectModal()"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Create Project
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [];
+        let progressChart = null;
+
+        function formatDate(dateString) {
+            if (!dateString) {
+                return '';
+            }
+            const date = new Date(dateString);
+            if (Number.isNaN(date.getTime())) {
+                return '';
+            }
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Utility function for API calls
+        async function apiCall(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
+            
+            const response = await fetch(url, { ...defaultOptions, ...options });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProjects();
+            loadManagers();
+        });
+
+        async function loadProjects() {
+            try {
+                projects = await apiCall('/api/projects');
+                displayProjects();
+                updateStats();
+                updateProgressChart();
+            } catch (error) {
+                console.error('Failed to load projects:', error);
+            }
+        }
+
+        async function loadManagers() {
+            try {
+                const managers = await apiCall('/api/projects/managers');
+                const select = document.getElementById('projectManager');
+                managers.forEach(manager => {
+                    const option = document.createElement('option');
+                    option.value = manager.id;
+                    option.textContent = manager.username;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load managers:', error);
+            }
+        }
+
+        function displayProjects() {
+            const container = document.getElementById('projectsList');
+            
+            if (projects.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No projects found. Create your first project!</p>';
+                return;
+            }
+
+            container.innerHTML = projects.map(project => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">${project.name}</h3>
+                            <p class="text-gray-600 text-sm">${project.description || 'No description'}</p>
+                        </div>
+                        <span class="px-3 py-1 text-xs rounded-full ${getStatusColor(project.status)}">
+                            ${project.status}
+                        </span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
+                        <div><i class="fas fa-user mr-2"></i>Manager: ${project.managerName || 'Not assigned'}</div>
+                        <div><i class="fas fa-calendar mr-2"></i>Start: ${formatDate(project.startDate)}</div>
+                        <div><i class="fas fa-chart-line mr-2"></i>Progress: ${project.progressPercentage?.toFixed(1) || 0}%</div>
+                        <div><i class="fas fa-calendar-check mr-2"></i>End: ${formatDate(project.endDate)}</div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button onclick="viewProjectDetails(${project.id})" 
+                                class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm">
+                            <i class="fas fa-eye mr-1"></i>View Details
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = projects.length;
+            const inProgress = projects.filter(p => p.status === 'IN_PROGRESS').length;
+            const completed = projects.filter(p => p.status === 'COMPLETED').length;
+
+            document.getElementById('totalProjects').textContent = total;
+            document.getElementById('inProgressProjects').textContent = inProgress;
+            document.getElementById('completedProjects').textContent = completed;
+        }
+
+        function updateProgressChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            if (progressChart) {
+                progressChart.destroy();
+            }
+
+            progressChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: projects.map(p => p.name),
+                    datasets: [{
+                        label: 'Progress %',
+                        data: projects.map(p => p.progressPercentage || 0),
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'PLANNING': return 'bg-gray-100 text-gray-800';
+                case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800';
+                case 'COMPLETED': return 'bg-green-100 text-green-800';
+                case 'ON_HOLD': return 'bg-red-100 text-red-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function showCreateProjectModal() {
+            document.getElementById('createProjectModal').classList.remove('hidden');
+        }
+
+        function hideCreateProjectModal() {
+            document.getElementById('createProjectModal').classList.add('hidden');
+            document.getElementById('createProjectForm').reset();
+        }
+
+        // Handle project creation
+        document.getElementById('createProjectForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const projectData = {
+                name: document.getElementById('projectName').value,
+                description: document.getElementById('projectDescription').value,
+                manager: { id: parseInt(document.getElementById('projectManager').value) },
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value
+            };
+
+            try {
+                await apiCall('/api/projects', {
+                    method: 'POST',
+                    body: JSON.stringify(projectData)
+                });
+                
+                showNotification('Project created successfully!');
+                hideCreateProjectModal();
+                loadProjects();
+            } catch (error) {
+                console.error('Failed to create project:', error);
+            }
+        });
+
+        function viewProjectDetails(projectId) {
+            // Navigate to project details page
+            window.location.href = `/client/projects/${projectId}`;
+        }
+
+        function downloadReports() {
+            // Generate and download reports
+            window.location.href = `/api/reports/client/${document.getElementById('userId').textContent}`;
+        }
+
+        // Utility function for notifications
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

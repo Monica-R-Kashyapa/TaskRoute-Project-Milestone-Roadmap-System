@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{base :: head}">
+    <title>Project Milestones - TaskRoute</title>
+</head>
+<body>
+    <div th:replace="~{base :: header}"></div>
+    
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Project Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900" id="projectName">Project Milestones</h1>
+                    <p class="text-gray-600" id="projectDescription">Loading project details...</p>
+                </div>
+                <button onclick="goBack()" 
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </button>
+            </div>
+            
+            <!-- Progress Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-600 text-sm font-medium">Total Milestones</p>
+                            <p class="text-2xl font-bold text-blue-900" id="totalMilestones">0</p>
+                        </div>
+                        <i class="fas fa-tasks text-blue-500 text-2xl"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-green-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-600 text-sm font-medium">Completed</p>
+                            <p class="text-2xl font-bold text-green-900" id="completedMilestones">0</p>
+                        </div>
+                        <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-yellow-600 text-sm font-medium">In Progress</p>
+                            <p class="text-2xl font-bold text-yellow-900" id="inProgressMilestones">0</p>
+                        </div>
+                        <i class="fas fa-spinner text-yellow-500 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roadmap Visualization -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">Project Roadmap</h2>
+            <div id="roadmapContainer" class="milestone-roadmap p-8">
+                <!-- Roadmap will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Progress Chart -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Progress Overview</h2>
+            <div class="mb-4">
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Overall Progress</span>
+                    <span class="text-sm font-medium text-gray-700" id="progressPercentage">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progressBar" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="relative h-64">
+                <canvas id="progressChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Milestones List -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-900">Milestone Details</h2>
+                <button onclick="downloadReport()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-download mr-2"></i>Download Report
+                </button>
+            </div>
+            <div id="milestonesList" class="space-y-4">
+                <!-- Milestones will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Update Milestone Modal -->
+    <div id="updateMilestoneModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Update Milestone Status</h3>
+                <form id="updateMilestoneForm">
+                    <input type="hidden" id="updateMilestoneId">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                            <input type="text" id="updateMilestoneTitle" readonly
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select id="updateMilestoneStatus" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="NOT_STARTED">Not Started</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="COMPLETED">Completed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea id="updateMilestoneNotes" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Add any notes about this milestone..."></textarea>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" onclick="hideUpdateMilestoneModal()"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Update Status
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        let project = null;
+        let milestones = [];
+        let projectId = null;
+        let progressChart = null;
+
+        function formatDate(dateString) {
+            if (!dateString) {
+                return '';
+            }
+            const date = new Date(dateString);
+            if (Number.isNaN(date.getTime())) {
+                return '';
+            }
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        async function apiCall(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
+
+            const response = await fetch(url, { ...defaultOptions, ...options });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        // Get project ID from URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            projectId = urlParams.get('projectId');
+
+            if (!projectId) {
+                const serverProjectId = /*[[${projectId}]]*/ null;
+                if (serverProjectId) {
+                    projectId = String(serverProjectId);
+                }
+            }
+            
+            if (projectId) {
+                loadProjectData();
+            } else {
+                showNotification('Project ID not found', 'error');
+                goBack();
+            }
+        });
+
+        async function loadProjectData() {
+            try {
+                // Load project details
+                project = await apiCall(`/api/projects/${projectId}`);
+                
+                // Load milestones
+                milestones = await apiCall(`/api/milestones/project/${projectId}`);
+                
+                // Update UI
+                updateProjectHeader();
+                displayRoadmap();
+                displayMilestones();
+                updateProgress();
+                updateProgressChart();
+            } catch (error) {
+                console.error('Failed to load project data:', error);
+                showNotification('Failed to load project data', 'error');
+            }
+        }
+
+        function updateProjectHeader() {
+            document.getElementById('projectName').textContent = project.name;
+            document.getElementById('projectDescription').textContent = project.description || 'No description available';
+        }
+
+        function displayRoadmap() {
+            const container = document.getElementById('roadmapContainer');
+            
+            if (milestones.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500">No milestones defined for this project.</p>';
+                return;
+            }
+
+            // Sort milestones by sequence order
+            const sortedMilestones = milestones.sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+            
+            container.innerHTML = sortedMilestones.map(milestone => `
+                <div class="milestone-item">
+                    <div class="milestone-dot ${getMilestoneStatusClass(milestone.status)}"></div>
+                    <div class="mt-2">
+                        <p class="text-xs font-medium text-gray-900">${milestone.title}</p>
+                        <p class="text-xs text-gray-500">${milestone.status.replace('_', ' ')}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayMilestones() {
+            const container = document.getElementById('milestonesList');
+            
+            if (milestones.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No milestones found for this project.</p>';
+                return;
+            }
+
+            const sortedMilestones = milestones.sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+            
+            container.innerHTML = sortedMilestones.map(milestone => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <span class="text-lg font-semibold text-gray-900 mr-3">${milestone.sequenceOrder}.</span>
+                                <h3 class="text-lg font-semibold text-gray-900">${milestone.title}</h3>
+                            </div>
+                            <p class="text-gray-600 mb-2">${milestone.description || 'No description'}</p>
+                            <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                <span><i class="fas fa-calendar mr-1"></i>Due: ${formatDate(milestone.dueDate)}</span>
+                                ${milestone.completedAt ? `<span><i class="fas fa-check-circle mr-1"></i>Completed: ${formatDate(milestone.completedAt)}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end space-y-2">
+                            <span class="px-3 py-1 text-xs rounded-full ${getMilestoneStatusColor(milestone.status)}">
+                                ${milestone.status.replace('_', ' ')}
+                            </span>
+                            <button onclick="updateMilestoneStatus(${milestone.id})" 
+                                    class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded text-sm">
+                                <i class="fas fa-edit mr-1"></i>Update Status
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateProgress() {
+            const total = milestones.length;
+            const completed = milestones.filter(m => m.status === 'COMPLETED').length;
+            const inProgress = milestones.filter(m => m.status === 'IN_PROGRESS').length;
+            
+            document.getElementById('totalMilestones').textContent = total;
+            document.getElementById('completedMilestones').textContent = completed;
+            document.getElementById('inProgressMilestones').textContent = inProgress;
+            
+            const percentage = total > 0 ? (completed / total * 100).toFixed(1) : 0;
+            document.getElementById('progressPercentage').textContent = percentage + '%';
+            document.getElementById('progressBar').style.width = percentage + '%';
+        }
+
+        function updateProgressChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            if (progressChart) {
+                progressChart.destroy();
+            }
+
+            const statusCounts = {
+                'Not Started': milestones.filter(m => m.status === 'NOT_STARTED').length,
+                'In Progress': milestones.filter(m => m.status === 'IN_PROGRESS').length,
+                'Completed': milestones.filter(m => m.status === 'COMPLETED').length
+            };
+
+            progressChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: [
+                            'rgba(107, 114, 128, 0.8)',
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(34, 197, 94, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(107, 114, 128, 1)',
+                            'rgba(251, 191, 36, 1)',
+                            'rgba(34, 197, 94, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function getMilestoneStatusClass(status) {
+            switch(status) {
+                case 'NOT_STARTED': return 'not-started';
+                case 'IN_PROGRESS': return 'in-progress';
+                case 'COMPLETED': return 'completed';
+                default: return 'not-started';
+            }
+        }
+
+        function getMilestoneStatusColor(status) {
+            switch(status) {
+                case 'NOT_STARTED': return 'bg-gray-100 text-gray-800';
+                case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800';
+                case 'COMPLETED': return 'bg-green-100 text-green-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function updateMilestoneStatus(milestoneId) {
+            const milestone = milestones.find(m => m.id === milestoneId);
+            if (milestone) {
+                document.getElementById('updateMilestoneId').value = milestone.id;
+                document.getElementById('updateMilestoneTitle').value = milestone.title;
+                document.getElementById('updateMilestoneStatus').value = milestone.status;
+                document.getElementById('updateMilestoneModal').classList.remove('hidden');
+            }
+        }
+
+        function hideUpdateMilestoneModal() {
+            document.getElementById('updateMilestoneModal').classList.add('hidden');
+            document.getElementById('updateMilestoneForm').reset();
+        }
+
+        // Handle milestone update
+        document.getElementById('updateMilestoneForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const milestoneId = document.getElementById('updateMilestoneId').value;
+            const milestoneData = {
+                status: document.getElementById('updateMilestoneStatus').value,
+                description: milestones.find(m => m.id == milestoneId)?.description + 
+                           '\n\nNotes: ' + document.getElementById('updateMilestoneNotes').value
+            };
+
+            try {
+                await apiCall(`/api/milestones/${milestoneId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(milestoneData)
+                });
+                
+                showNotification('Milestone status updated successfully!');
+                hideUpdateMilestoneModal();
+                loadProjectData(); // Reload data
+            } catch (error) {
+                console.error('Failed to update milestone:', error);
+            }
+        });
+
+        function goBack() {
+            const path = window.location.pathname || '';
+            if (path.startsWith('/manager/')) {
+                window.location.href = '/manager/dashboard';
+                return;
+            }
+            window.location.href = '/client/dashboard';
+        }
+
+        function downloadReport() {
+            window.location.href = `/api/reports/project/${projectId}`;
+        }
+    </script>
+</body>
+</html>

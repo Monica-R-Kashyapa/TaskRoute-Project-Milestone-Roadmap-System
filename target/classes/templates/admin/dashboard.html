@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - TaskRoute</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .milestone-roadmap {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .milestone-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e5e7eb;
+            z-index: 1;
+        }
+        .milestone-item {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+        .milestone-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .milestone-dot.completed {
+            background: #10b981;
+        }
+        .milestone-dot.in-progress {
+            background: #f59e0b;
+        }
+        .milestone-dot.not-started {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <img src="/images/taskroute-logo.png" alt="TaskRoute" class="h-10 w-auto mr-3" />
+                    <div class="leading-tight">
+                        <div class="font-bold text-xl text-gray-800">TaskRoute</div>
+                        <div class="text-xs text-gray-500">Project &amp; Milestone Roadmap System</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600" th:if="${session.user != null}">
+                        <i class="fas fa-user mr-2"></i>
+                        <span th:text="${session.user.username}">User</span>
+                        <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800" 
+                              th:text="${session.user.role}">ROLE</span>
+                    </span>
+                    <a th:if="${session.user != null}" href="/auth/logout" 
+                       class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Section -->
+        <div class="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-6 mb-8 text-white">
+            <h1 class="text-3xl font-bold mb-2">Welcome, <span th:text="${session.user.username}">Admin</span>!</h1>
+            <p class="text-purple-100">Manage users, projects, and system overview</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Total Users</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalUsers">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-users text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Total Projects</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalProjects">0</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-project-diagram text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Total Milestones</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalMilestones">0</p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-tasks text-purple-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Avg Progress</p>
+                        <p class="text-2xl font-bold text-gray-900" id="avgProgress">0%</p>
+                    </div>
+                    <div class="bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-chart-line text-yellow-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">System Management</h2>
+            <div class="flex flex-wrap gap-4">
+                <button onclick="showCreateUserModal()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-user-plus mr-2"></i>Add User
+                </button>
+                <button onclick="downloadAllReports()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-download mr-2"></i>Download All Reports
+                </button>
+                <button onclick="refreshData()" 
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-sync mr-2"></i>Refresh Data
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Users Management -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900">User Management</h2>
+                    <div class="flex space-x-2">
+                        <select id="userRoleFilter" onchange="filterUsers()" 
+                                class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                            <option value="">All Roles</option>
+                            <option value="CLIENT">Clients</option>
+                            <option value="MANAGER">Managers</option>
+                            <option value="ADMIN">Admins</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="usersList" class="space-y-3 max-h-96 overflow-y-auto">
+                    <!-- Users will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Projects Overview -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900">Projects Overview</h2>
+                    <div class="flex space-x-2">
+                        <select id="projectStatusFilter" onchange="filterProjects()" 
+                                class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                            <option value="">All Status</option>
+                            <option value="PLANNING">Planning</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="ON_HOLD">On Hold</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="projectsList" class="space-y-3 max-h-96 overflow-y-auto">
+                    <!-- Projects will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">User Distribution</h2>
+                <div class="relative h-64">
+                    <canvas id="userChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Project Completion Trends</h2>
+                <div class="relative h-64">
+                    <canvas id="projectChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create User Modal -->
+    <div id="createUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Create New User</h3>
+                <form id="createUserForm">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input type="text" id="newUsername" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="newEmail" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input type="password" id="newPassword" required minlength="6"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                            <select id="newRole" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="">Select role</option>
+                                <option value="CLIENT">Client</option>
+                                <option value="MANAGER">Manager</option>
+                                <option value="ADMIN">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" onclick="hideCreateUserModal()"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                            Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let users = [];
+        let projects = [];
+        let milestones = [];
+        let userChart = null;
+        let projectChart = null;
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        async function apiCall(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
+
+            const response = await fetch(url, { ...defaultOptions, ...options });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllData();
+        });
+
+        async function loadAllData() {
+            try {
+                // Load all data
+                const [projectsData, usersData] = await Promise.all([
+                    apiCall('/api/projects'),
+                    apiCall('/api/users') // Assuming this endpoint exists
+                ]);
+                
+                projects = projectsData;
+                users = usersData;
+                
+                // Load milestones for all projects
+                const allMilestones = [];
+                for (const project of projects) {
+                    const projectMilestones = await apiCall(`/api/milestones/project/${project.id}`);
+                    allMilestones.push(...projectMilestones);
+                }
+                milestones = allMilestones;
+                
+                // Update all displays
+                displayUsers();
+                displayProjects();
+                updateStats();
+                updateCharts();
+            } catch (error) {
+                console.error('Failed to load data:', error);
+            }
+        }
+
+        function displayUsers() {
+            const container = document.getElementById('usersList');
+            const roleFilter = document.getElementById('userRoleFilter').value;
+            
+            let filteredUsers = users;
+            if (roleFilter) {
+                filteredUsers = users.filter(u => u.role === roleFilter);
+            }
+            
+            if (filteredUsers.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No users found.</p>';
+                return;
+            }
+
+            container.innerHTML = filteredUsers.map(user => `
+                <div class="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-semibold text-gray-900">${user.username}</h4>
+                            <p class="text-gray-600 text-sm">${user.email}</p>
+                            <span class="inline-block px-2 py-1 text-xs rounded-full ${getRoleColor(user.role)} mt-1">
+                                ${user.role}
+                            </span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editUser(${user.id})" 
+                                    class="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded">
+                                <i class="fas fa-edit text-sm"></i>
+                            </button>
+                            <button onclick="deleteUser(${user.id})" 
+                                    class="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayProjects() {
+            const container = document.getElementById('projectsList');
+            const statusFilter = document.getElementById('projectStatusFilter').value;
+            
+            let filteredProjects = projects;
+            if (statusFilter) {
+                filteredProjects = projects.filter(p => p.status === statusFilter);
+            }
+            
+            if (filteredProjects.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No projects found.</p>';
+                return;
+            }
+
+            container.innerHTML = filteredProjects.map(project => `
+                <div class="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-semibold text-gray-900">${project.name}</h4>
+                            <p class="text-gray-600 text-xs">Client: ${project.clientName || 'N/A'} | Manager: ${project.managerName || 'N/A'}</p>
+                        </div>
+                        <select onchange="updateProjectStatus(${project.id}, this.value)"
+                                class="px-2 py-1 text-xs border border-gray-300 rounded-full ${getStatusColor(project.status)}">
+                            <option value="PLANNING" ${project.status === 'PLANNING' ? 'selected' : ''}>PLANNING</option>
+                            <option value="IN_PROGRESS" ${project.status === 'IN_PROGRESS' ? 'selected' : ''}>IN_PROGRESS</option>
+                            <option value="COMPLETED" ${project.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+                            <option value="ON_HOLD" ${project.status === 'ON_HOLD' ? 'selected' : ''}>ON_HOLD</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-chart-line mr-1"></i>${project.progressPercentage?.toFixed(1) || 0}% Complete
+                        </div>
+                        <button onclick="deleteProject(${project.id})" 
+                                class="bg-red-100 hover:bg-red-200 text-red-700 p-1 rounded text-xs">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateProjectStatus(projectId, newStatus) {
+            try {
+                await apiCall(`/api/projects/${projectId}/status`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: newStatus })
+                });
+                showNotification('Project status updated successfully!');
+                loadAllData();
+            } catch (error) {
+                console.error('Failed to update project status:', error);
+                showNotification('Failed to update project status', 'error');
+                loadAllData();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('totalProjects').textContent = projects.length;
+            document.getElementById('totalMilestones').textContent = milestones.length;
+            
+            const avgProgress = projects.length > 0 
+                ? projects.reduce((sum, p) => sum + (p.progressPercentage || 0), 0) / projects.length 
+                : 0;
+            document.getElementById('avgProgress').textContent = avgProgress.toFixed(1) + '%';
+        }
+
+        function updateCharts() {
+            updateUserChart();
+            updateProjectChart();
+        }
+
+        function updateUserChart() {
+            const ctx = document.getElementById('userChart').getContext('2d');
+            
+            if (userChart) {
+                userChart.destroy();
+            }
+
+            const roleCounts = {
+                CLIENT: users.filter(u => u.role === 'CLIENT').length,
+                MANAGER: users.filter(u => u.role === 'MANAGER').length,
+                ADMIN: users.filter(u => u.role === 'ADMIN').length
+            };
+
+            userChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Clients', 'Managers', 'Admins'],
+                    datasets: [{
+                        data: Object.values(roleCounts),
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(168, 85, 247, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(34, 197, 94, 1)',
+                            'rgba(168, 85, 247, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function updateProjectChart() {
+            const ctx = document.getElementById('projectChart').getContext('2d');
+            
+            if (projectChart) {
+                projectChart.destroy();
+            }
+
+            const statusCounts = {
+                PLANNING: projects.filter(p => p.status === 'PLANNING').length,
+                IN_PROGRESS: projects.filter(p => p.status === 'IN_PROGRESS').length,
+                COMPLETED: projects.filter(p => p.status === 'COMPLETED').length,
+                ON_HOLD: projects.filter(p => p.status === 'ON_HOLD').length
+            };
+
+            projectChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Planning', 'In Progress', 'Completed', 'On Hold'],
+                    datasets: [{
+                        label: 'Projects',
+                        data: Object.values(statusCounts),
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function getRoleColor(role) {
+            switch(role) {
+                case 'CLIENT': return 'bg-blue-100 text-blue-800';
+                case 'MANAGER': return 'bg-green-100 text-green-800';
+                case 'ADMIN': return 'bg-purple-100 text-purple-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'PLANNING': return 'bg-gray-100 text-gray-800';
+                case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800';
+                case 'COMPLETED': return 'bg-green-100 text-green-800';
+                case 'ON_HOLD': return 'bg-red-100 text-red-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').classList.remove('hidden');
+        }
+
+        function hideCreateUserModal() {
+            document.getElementById('createUserModal').classList.add('hidden');
+            document.getElementById('createUserForm').reset();
+        }
+
+        // Handle user creation
+        document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userData = {
+                username: document.getElementById('newUsername').value,
+                email: document.getElementById('newEmail').value,
+                password: document.getElementById('newPassword').value,
+                role: document.getElementById('newRole').value
+            };
+
+            try {
+                await apiCall('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify(userData)
+                });
+                
+                showNotification('User created successfully!');
+                hideCreateUserModal();
+                loadAllData();
+            } catch (error) {
+                console.error('Failed to create user:', error);
+            }
+        });
+
+        async function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                try {
+                    await apiCall(`/api/users/${userId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    showNotification('User deleted successfully!');
+                    loadAllData();
+                } catch (error) {
+                    console.error('Failed to delete user:', error);
+                }
+            }
+        }
+
+        async function deleteProject(projectId) {
+            if (confirm('Are you sure you want to delete this project?')) {
+                try {
+                    await apiCall(`/api/projects/${projectId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    showNotification('Project deleted successfully!');
+                    loadAllData();
+                } catch (error) {
+                    console.error('Failed to delete project:', error);
+                }
+            }
+        }
+
+        function filterUsers() {
+            displayUsers();
+        }
+
+        function filterProjects() {
+            displayProjects();
+        }
+
+        function refreshData() {
+            loadAllData();
+            showNotification('Data refreshed successfully!');
+        }
+
+        function downloadAllReports() {
+            window.location.href = '/api/reports/admin/all';
+        }
+
+        function editUser(userId) {
+            // Implement edit user functionality
+            showNotification('Edit user functionality coming soon!');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">TaskRoute – Project & Milestone Roadmap System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .milestone-roadmap {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .milestone-roadmap::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e5e7eb;
+            z-index: 1;
+        }
+        .milestone-item {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+        .milestone-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .milestone-dot.completed {
+            background: #10b981;
+        }
+        .milestone-dot.in-progress {
+            background: #f59e0b;
+        }
+        .milestone-dot.not-started {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg" th:fragment="header">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <img src="/images/taskroute-logo.png" alt="TaskRoute" class="h-10 w-auto mr-3" />
+                    <div class="leading-tight">
+                        <div class="font-bold text-xl text-gray-800">TaskRoute</div>
+                        <div class="text-xs text-gray-500">Project &amp; Milestone Roadmap System</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600" th:if="${session.user != null}">
+                        <i class="fas fa-user mr-2"></i>
+                        <span th:text="${session.user.username}">User</span>
+                        <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800" 
+                              th:text="${session.user.role}">ROLE</span>
+                    </span>
+                    <a th:if="${session.user != null}" href="/auth/logout" 
+                       class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div th:replace="${content} :: content"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p>&copy; 2024 TaskRoute. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Common JavaScript -->
+    <script>
+        // Utility functions
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // API helper functions
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                showNotification('An error occurred. Please try again.', 'error');
+                throw error;
+            }
+        }
+    </script>
+</body>
+</html>
