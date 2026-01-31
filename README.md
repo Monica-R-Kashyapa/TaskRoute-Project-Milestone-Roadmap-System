@@ -3,9 +3,9 @@ TaskRoute is a **role-based project and milestone tracking mini project** built 
 
 ---
 
-## 📌 Features Overview
+## Features Overview
 
-### 👤 Role-Based Access
+### Role-Based Access
 - Client
 - Manager
 - Admin
@@ -33,7 +33,7 @@ TaskRoute is a **role-based project and milestone tracking mini project** built 
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |------|-----------|
@@ -66,7 +66,10 @@ The application follows a **layered architecture**:
 ![Manager Dashboard](src/main/resources/static/images/manager.png)
 
 ### Admin Dashboard
-![Admin Dashboard](src/main/resources/static/images/admin.png) ![Admin Dashboard](src/main/resources/static/images/admin1.png)
+<p align="center">
+  <img src="src/main/resources/static/images/admin.png" alt="Admin Dashboard 1" width="45%" />
+  <img src="src/main/resources/static/images/admin1.png" alt="Admin Dashboard 2" width="45%" />
+</p>
 
 ### Milestone Roadmap View
 ![Milestone Roadmap](src/main/resources/static/images/milestone.png)
